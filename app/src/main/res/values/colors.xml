@@ -3,4 +3,16 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    
+    <color name="lavender">#C787E7</color>
+    <color name="carnation">#D75787</color>
+    <color name="sapphire">#077CE7</color>
+    <color name="ruby">#C70707</color>
+    <color name="amber">#D77D07</color>
+    <color name="fern">#079727</color>
+    <color name="slate">#A7A7B7</color>
+
+    <color name="serenity">#38B0E8</color>
+    <color name="fervidity">#E84848</color>
+    <color name="chaos">#895A04</color>
 </resources>
