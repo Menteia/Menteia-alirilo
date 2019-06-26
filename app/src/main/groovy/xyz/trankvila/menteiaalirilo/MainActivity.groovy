@@ -3,10 +3,12 @@ package xyz.trankvila.menteiaalirilo
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.support.annotation.Nullable
+import android.support.v4.app.FragmentActivity
 import android.support.v4.content.ContextCompat
 import android.support.v7.widget.AppCompatImageView
 import android.text.SpannableString
@@ -16,6 +18,8 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
+import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import com.amazon.device.messaging.ADM
 import com.android.volley.AuthFailureError
@@ -35,18 +39,21 @@ import org.joda.time.DateTime
 import org.joda.time.LocalDate
 import org.joda.time.LocalDateTime
 import org.joda.time.LocalTime
+import xyz.trankvila.menteiaalirilo.communication.Queries
+import xyz.trankvila.menteiaalirilo.utilities.AudioPlayback
 import xyz.trankvila.menteiaalirilo.utilities.Constants
 import xyz.trankvila.menteiaalirilo.utilities.Session
 import xyz.trankvila.menteiaalirilo.utilities.SilicanDate
 
 @CompileStatic
-class MainActivity extends Activity {
+class MainActivity extends FragmentActivity {
     private static final List<Integer> weekdayColors = [R.color.slate, R.color.lavender, R.color.carnation,
                                                         R.color.sapphire, R.color.ruby, R.color.amber, R.color.fern]
     private static final List<Integer> phaseColors = [R.color.chaos, R.color.serenity, R.color.fervidity]
+    private static final List<String> months = ['A', 'C', 'E', 'F', 'G', 'H', 'L', 'M', 'P', 'S', 'T', 'V', 'Z']
+    private static final List<String> weeks = ['N', 'P', 'S', 'V', 'Z']
+    private static final List<String> days = ['B', 'F', 'L', 'N', 'P', 'R', 'T']
     private static final int RC_LOGIN = 1
-
-    private RequestQueue requestQueue
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -62,11 +69,12 @@ class MainActivity extends Activity {
             submitAppToken()
             Log.d(this.class.simpleName, "Logged in as ${user.email}")
         }
-        requestQueue = Volley.newRequestQueue(this)
+        Session.requestQueue = Volley.newRequestQueue(this)
         makeFullscreen()
         setContentView(R.layout.activity_main)
         final backgroundTop = (AppCompatImageView) findViewById(R.id.background_top)
         final backgroundBottom = (AppCompatImageView) findViewById(R.id.background_bottom)
+        final mainProgressBar = findViewById(R.id.main_progress_bar) as ProgressBar
 
         final fira = Typeface.createFromAsset(getAssets(), "fonts/fira_mono.otf")
         final firaSans = Typeface.createFromAsset(getAssets(), "fonts/fira_sans_regular.otf")
@@ -84,23 +92,65 @@ class MainActivity extends Activity {
                 final date = SilicanDate.fromGregorian(now.toLocalDate())
                 final weekday = date.date % 7
                 final weekdayColor = weekdayColors[weekday]
-                final phaseColor = phaseColors[now.hourOfDay.intdiv(8).intValue()]
+                final phase = now.hourOfDay.intdiv(8).intValue()
+                final phaseColor = phaseColors[phase]
+                final nextWeekdayColor = weekdayColors[(weekday + 1) % 7]
+                final nextPhaseColor = phaseColors[(phase + 1) % 3]
                 backgroundTop.setColorFilter(ContextCompat.getColor(MainActivity.this, weekdayColor))
                 backgroundBottom.setColorFilter(ContextCompat.getColor(MainActivity.this, phaseColor))
-                dateText.setText(String.format("%d\n%02d %02d", date.year, date.month, date.date))
+                dateText.setText(String.format("%d\n%s %s %s", date.year, months[date.month - 1],
+                        weeks[(date.date - 1).intdiv(7).intValue()], days[((date.date - 1) % 7).intValue()]))
                 hourText.setText((now.hourOfDay % 8).toString())
                 minuteText.setText(String.format("%02d", now.minuteOfHour))
                 final nextMinute = now.plusMinutes(1).withSecondOfMinute(0)
+                if (now.hourOfDay % 8 == 7) {
+                    final hsv = new float[3]
+                    Color.colorToHSV(ContextCompat.getColor(MainActivity.this, nextPhaseColor), hsv)
+                    hsv[2] = hsv[2] * (now.minuteOfHour / 60.0) as float
+                    final rgb = Color.HSVToColor(hsv)
+                    hourText.setTextColor(rgb)
+                    minuteText.setTextColor(rgb)
+                }
+                if (now.hourOfDay == 23) {
+                    final hsv = new float[3]
+                    Color.colorToHSV(ContextCompat.getColor(MainActivity.this, nextWeekdayColor), hsv)
+                    hsv[2] = hsv[2] * (now.minuteOfHour / 60.0) as float
+                    dateText.setTextColor(Color.HSVToColor(hsv))
+                }
                 handler.postDelayed(this, nextMinute.millis - now.millis)
             }
         }
         updater.run()
+        dateText.onClickListener = {
+            final request = Queries.currentDateReadout({
+                mainProgressBar.visibility = View.GONE
+                AudioPlayback.play(it, this)
+            })
+            mainProgressBar.visibility = View.VISIBLE
+            Session.requestQueue.add(request)
+        }
+        hourText.onClickListener = minuteText.onClickListener = {
+            final request = Queries.currentTimeReadout({
+                mainProgressBar.visibility = View.GONE
+                AudioPlayback.play(it, this)
+            })
+            mainProgressBar.visibility = View.VISIBLE
+            Session.requestQueue.add(request)
+        }
 
         final temperatureText = findViewById(R.id.temperature_text) as TextView
         final temperature = new SpannableString("nevum 21,5")
         temperature.setSpan(new RelativeSizeSpan(4F), 6, 10, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
         temperatureText.setTypeface(firaSans)
         temperatureText.setText(temperature)
+        final temperatureButton = findViewById(R.id.temperature_button) as Button
+        temperatureButton.setOnClickListener({
+            final dialog = new QueryDialog()
+            final arguments = new Bundle()
+            arguments.putString("title", "doni ko des frodeni testos")
+            dialog.setArguments(arguments)
+            dialog.show(getSupportFragmentManager(), "QueryFragment")
+        })
     }
 
     @Override
@@ -111,13 +161,15 @@ class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == RC_LOGIN) {
-            final response = IdpResponse.fromResultIntent(data)
-            if (resultCode == RESULT_OK) {
-                final user = FirebaseAuth.instance.currentUser
-                Log.d(this.class.simpleName, user.email)
-                submitAppToken()
-            }
+        switch (requestCode) {
+            case RC_LOGIN:
+                final response = IdpResponse.fromResultIntent(data)
+                if (resultCode == RESULT_OK) {
+                    final user = FirebaseAuth.instance.currentUser
+                    Log.d(this.class.simpleName, user.email)
+                    submitAppToken()
+                }
+                break
         }
     }
 
@@ -141,14 +193,18 @@ class MainActivity extends Activity {
             final request = new StringRequest(Request.Method.POST, url, {
                 Log.d(this.class.simpleName, "Registered with Menteia cerbo")
             }, { VolleyError error ->
-                Log.e(this.class.simpleName, "Error registering with Menteia cerbo: ${error.networkResponse.statusCode}")
+                if (error.networkResponse != null) {
+                    Log.e(this.class.simpleName, "Error registering with Menteia cerbo: ${error.networkResponse.statusCode}")
+                } else {
+                    Log.e(this.class.simpleName, "Error connecting to Menteia cerbo")
+                }
             }) {
                 @Override
                 byte[] getBody() throws AuthFailureError {
                     return registrationID.getBytes()
                 }
             }
-            requestQueue.add(request)
+            Session.requestQueue.add(request)
         })
     }
 
