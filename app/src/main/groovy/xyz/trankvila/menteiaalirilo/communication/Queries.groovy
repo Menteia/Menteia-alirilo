@@ -1,12 +1,15 @@
 package xyz.trankvila.menteiaalirilo.communication
 
 import android.support.annotation.NonNull
+import com.android.volley.AuthFailureError
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.NetworkResponse
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.JsonRequest
+import com.android.volley.toolbox.StringRequest
+import com.google.gson.JsonObject
 import groovy.transform.CompileStatic
 import org.json.JSONObject
 import xyz.trankvila.menteiaalirilo.utilities.Constants
@@ -42,5 +45,25 @@ final class Queries {
     static VoiceRequest currentDateReadout(Response.Listener<byte[]> listener) {
         final url = "${Constants.baseURL}/alirilo/today?token=${Session.userToken}"
         return new VoiceRequest(Request.Method.GET, url, listener, null)
+    }
+
+    static JsonObjectRequest request(String request, Response.Listener<JSONObject> listener) {
+        final url = "${Constants.baseURL}/alirilo?token=${Session.userToken}"
+        return new JsonObjectRequest(Request.Method.POST, url, null, listener, null) {
+            @Override
+            byte[] getBody() throws AuthFailureError {
+                return request.bytes
+            }
+        }
+    }
+
+    static StringRequest speak(String question, Response.Listener<String> listener) {
+        final url = "${Constants.baseURL}/xml?token=${Session.userToken}"
+        return new StringRequest(Request.Method.POST, url, listener, null) {
+            @Override
+            byte[] getBody() throws AuthFailureError {
+                return question.bytes
+            }
+        }
     }
 }

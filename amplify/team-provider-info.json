@@ -1,0 +1,14 @@
+{
+    "production": {
+        "awscloudformation": {
+            "AuthRoleName": "menteiaalirilo-production-20190713223053-authRole",
+            "UnauthRoleArn": "arn:aws:iam::975180057463:role/menteiaalirilo-production-20190713223053-unauthRole",
+            "AuthRoleArn": "arn:aws:iam::975180057463:role/menteiaalirilo-production-20190713223053-authRole",
+            "Region": "us-west-2",
+            "DeploymentBucketName": "menteiaalirilo-production-20190713223053-deployment",
+            "UnauthRoleName": "menteiaalirilo-production-20190713223053-unauthRole",
+            "StackName": "menteiaalirilo-production-20190713223053",
+            "StackId": "arn:aws:cloudformation:us-west-2:975180057463:stack/menteiaalirilo-production-20190713223053/8cef3470-a5f8-11e9-a026-0a58a0e3e17a"
+        }
+    }
+}
