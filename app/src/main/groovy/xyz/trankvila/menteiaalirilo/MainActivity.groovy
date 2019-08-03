@@ -44,17 +44,17 @@ import org.joda.time.LocalDateTime
 import org.joda.time.LocalTime
 import xyz.trankvila.menteiaalirilo.communication.Queries
 import xyz.trankvila.menteiaalirilo.fragments.ClockFragment
+import xyz.trankvila.menteiaalirilo.fragments.ControlFragment
+import xyz.trankvila.menteiaalirilo.fragments.IdleClockFragment
 import xyz.trankvila.menteiaalirilo.utilities.AudioPlayback
 import xyz.trankvila.menteiaalirilo.utilities.Constants
 import xyz.trankvila.menteiaalirilo.utilities.Session
 import xyz.trankvila.menteiaalirilo.utilities.SilicanDate
 
 @CompileStatic
-class MainActivity extends FragmentActivity implements ClockFragment.OnFragmentInteractionListener {
+class MainActivity extends FragmentActivity {
     private static final int RC_LOGIN = 1
 
-    private ProgressBar mainProgressBar
-    private Fragment centralFragment
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -73,24 +73,24 @@ class MainActivity extends FragmentActivity implements ClockFragment.OnFragmentI
         Session.requestQueue = Volley.newRequestQueue(this)
         makeFullscreen()
         setContentView(R.layout.activity_main)
-        mainProgressBar = findViewById(R.id.main_progress_bar) as ProgressBar
 
-        final firaSans = Typeface.createFromAsset(getAssets(), "fonts/fira_sans_regular.otf")
+        final now = DateTime.now()
+        final date = SilicanDate.fromGregorian(now.toLocalDate())
+        final weekday = date.date % 7
+        final weekdayColor = ClockFragment.weekdayColors[weekday]
+        final phase = now.hourOfDay.intdiv(8).intValue()
+        final phaseColor = ClockFragment.phaseColors[phase]
+        final backgroundTop = findViewById(R.id.background_top) as AppCompatImageView
+        final backgroundBottom = findViewById(R.id.background_bottom) as AppCompatImageView
+        backgroundTop.visibility = View.GONE
+        backgroundBottom.visibility = View.GONE
+//        backgroundTop.setColorFilter(ContextCompat.getColor(this, weekdayColor))
+//        backgroundBottom.setColorFilter(ContextCompat.getColor(this, phaseColor))
 
-        centralFragment = new ClockFragment()
         final transaction = supportFragmentManager.beginTransaction()
-        transaction.add(R.id.central_container, centralFragment)
+        final controlFragment = new IdleClockFragment()
+        transaction.add(R.id.fragment_container, controlFragment)
         transaction.commit()
-
-        final temperatureText = findViewById(R.id.temperature_text) as TextView
-        final temperature = new SpannableString("nevum 21,5")
-        temperature.setSpan(new RelativeSizeSpan(4F), 6, 10, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
-        temperatureText.setTypeface(firaSans)
-        temperatureText.setText(temperature)
-        final temperatureButton = findViewById(R.id.temperature_button) as Button
-        temperatureButton.setOnClickListener({
-            query("doni ko des frodeni testos")
-        })
     }
 
     @Override
@@ -157,24 +157,5 @@ class MainActivity extends FragmentActivity implements ClockFragment.OnFragmentI
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         decorView.setSystemUiVisibility(flags)
-    }
-
-    private void query(String line) {
-        mainProgressBar.setVisibility(View.VISIBLE)
-        final question = Queries.speak(line, {
-            AudioPlayback.speak(it, this, true, {
-                final response = Queries.request(line, {
-                    mainProgressBar.setVisibility(View.GONE)
-                    AudioPlayback.speak(it.getString("ssml"), this, false, {})
-                })
-                Session.requestQueue.add(response)
-            })
-        })
-        Session.requestQueue.add(question)
-    }
-
-    @Override
-    void onFragmentQuery(String line) {
-        query(line)
     }
 }
