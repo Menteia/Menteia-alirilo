@@ -89,7 +89,7 @@ class ClockFragment extends Fragment {
                 if (now.hourOfDay % 8 == 7) {
                     final hsv = new float[3]
                     Color.colorToHSV(ContextCompat.getColor(parentFragment?.activity, nextPhaseColor), hsv)
-                    hsv[2] = hsv[2] * (now.minuteOfHour / 60.0) as float
+                    hsv[2] = hsv[2] * (1 - now.minuteOfHour / 60.0) as float
                     final rgb = Color.HSVToColor(hsv)
                     hourText.setTextColor(rgb)
                     minuteText.setTextColor(rgb)
@@ -100,7 +100,7 @@ class ClockFragment extends Fragment {
                 if (now.hourOfDay == 23) {
                     final hsv = new float[3]
                     Color.colorToHSV(ContextCompat.getColor(parentFragment?.activity, nextWeekdayColor), hsv)
-                    hsv[2] = hsv[2] * (now.minuteOfHour / 60.0) as float
+                    hsv[2] = hsv[2] * (1 - now.minuteOfHour / 60.0) as float
                     dateSpan.setSpan(new ForegroundColorSpan(Color.HSVToColor(hsv)), 0, 3, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                 } else {
                     dateSpan.setSpan(new ForegroundColorSpan(Color.WHITE), 0, 3, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
